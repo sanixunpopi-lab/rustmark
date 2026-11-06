@@ -1,21 +1,29 @@
 local P,R,U,L=game:GetService("Players"),game:GetService("RunService"),game:GetService("UserInputService"),game:GetService("Lighting")
 local LP,C=P.LocalPlayer,workspace.CurrentCamera
-local S={ESP=true,Walls=false,Potato=false,Menu=true}
+local S={ESP=true,Walls=false,Potato=false,Bri=false,Menu=false}
 local OM,OT,ESP={},{},{}
+local OL,BA,BC={},false,nil
 local SG=Instance.new("ScreenGui") SG.Name,SG.ResetOnSpawn="K",false pcall(function() SG.Parent=game:GetService("CoreGui") end) if not SG.Parent then SG.Parent=LP:WaitForChild("PlayerGui") end
 local MB=Instance.new("TextButton",SG) MB.Size,MB.Position,MB.BackgroundColor3,MB.Text,MB.TextColor3,MB.Font,MB.TextSize=UDim2.new(0,60,0,60),UDim2.new(0,20,0,20),Color3.fromRGB(128,0,255),"K",Color3.fromRGB(255,255,255),Enum.Font.GothamBold,24 Instance.new("UICorner",MB).CornerRadius=UDim.new(1,0)
-local MF=Instance.new("Frame",SG) MF.Size,MF.Position,MF.BackgroundColor3,MF.BorderSizePixel,MF.Active,MF.Draggable=UDim2.new(0,320,0,300),UDim2.new(0,20,0,40),Color3.fromRGB(25,10,40),0,true,true Instance.new("UICorner",MF).CornerRadius=UDim.new(0,8)
+local MF=Instance.new("Frame",SG) MF.Size,MF.Position,MF.BackgroundColor3,MF.BorderSizePixel,MF.Active,MF.Draggable=UDim2.new(0,320,0,320),UDim2.new(0,20,0,40),Color3.fromRGB(25,10,40),0,true,true Instance.new("UICorner",MF).CornerRadius=UDim.new(0,8) MF.Visible=false
 local function CB(txt,y) local b=Instance.new("TextButton",MF) b.Size,b.Position,b.BackgroundColor3,b.Text,b.TextColor3,b.Font,b.TextSize=UDim2.new(0,280,0,35),UDim2.new(0,20,0,y),Color3.fromRGB(50,20,80),txt,Color3.fromRGB(220,220,220),Enum.Font.GothamSemibold,13 Instance.new("UICorner",b).CornerRadius=UDim.new(0,6) return b end
-local EB,PotB,WallB=CB("ESP: ON",20),CB("POTATO: OFF",65),CB("X-RAY: OFF",110)
+local EB,PotB,WallB,NightB=CB("ESP: ON",20),CB("POTATO: OFF",65),CB("X-RAY: OFF",110),CB("NIGHT VISION: OFF",155)
 local function UB(b,en,tOn,tOff) b.Text=en and tOn or tOff b.BackgroundColor3=en and Color3.fromRGB(128,0,255) or Color3.fromRGB(50,20,80) end
 local function TM() S.Menu=not S.Menu MF.Visible=S.Menu end
-MB.MouseButton1Click:Connect(TM) MF.Visible=false
+MB.MouseButton1Click:Connect(TM)
+U.InputBegan:Connect(function(i,gp) if gp then return end if i.KeyCode==Enum.KeyCode.RightShift then TM() end end)
 EB.MouseButton1Click:Connect(function() S.ESP=not S.ESP UB(EB,S.ESP,"ESP: ON","ESP: OFF") end)
 PotB.MouseButton1Click:Connect(function() S.Potato=not S.Potato UB(PotB,S.Potato,"POTATO: ON","POTATO: OFF") if S.Potato then for _,o in pairs(workspace:GetDescendants()) do if o:IsA("BasePart") then if o.Name:lower():find("grass") or o.Name:lower():find("weed") or o.Name:lower():find("bush") or o.Name:lower():find("leaf") then o.Transparency=1 o.CanCollide=false end if o.Material~=Enum.Material.SmoothPlastic then OT[o]=o.Material o.Material=Enum.Material.SmoothPlastic end end end L.GlobalShadows=false L.FogEnd=100 else for o,m in pairs(OT) do if o and o.Parent then o.Material=m end end OT={} L.GlobalShadows=true end end)
 local function ApplyWall() if not S.Walls then return end pcall(function() for _,o in pairs(workspace:GetDescendants()) do if o:IsA("BasePart") and not o:IsDescendantOf(LP.Character) and not o.Parent:FindFirstChild("Humanoid") and not o:IsA("Tool") then if not OM[o] then OM[o]={o.LocalTransparencyModifier,o.Transparency,o.Material} end o.LocalTransparencyModifier,o.Transparency=0.65,0.65 o.Material=Enum.Material.Plastic end end end) end
 local function ResetWall() for p,o in pairs(OM) do if p and p.Parent then p.LocalTransparencyModifier,p.Transparency,p.Material=o[1],o[2],o[3] end end OM={} end
 WallB.MouseButton1Click:Connect(function() S.Walls=not S.Walls UB(WallB,S.Walls,"X-RAY: ON","X-RAY: OFF") if S.Walls then ApplyWall() else ResetWall() end end)
 R.Heartbeat:Connect(function() if S.Walls then ApplyWall() elseif next(OM) then ResetWall() end end)
+NightB.MouseButton1Click:Connect(function()
+    S.Bri=not S.Bri
+    if S.Bri then OL.Ambient,OL.OutdoorAmbient=L.Ambient,L.OutdoorAmbient OL.Brightness,OL.FogEnd,OL.GlobalShadows=L.Brightness,L.FogEnd,L.GlobalShadows BA=true local function Apply() if not BA then return end L.Ambient,L.OutdoorAmbient=Color3.fromRGB(255,255,255),Color3.fromRGB(255,255,255) L.Brightness,L.FogEnd,L.GlobalShadows=2,100000,false end Apply() if BC then BC:Disconnect() end BC=L.Changed:Connect(function() if BA then Apply() end end)
+    else BA=false if BC then BC:Disconnect() end L.Ambient,L.OutdoorAmbient=OL.Ambient,OL.OutdoorAmbient L.Brightness,L.FogEnd,L.GlobalShadows=OL.Brightness,OL.FogEnd,OL.GlobalShadows end
+    UB(NightB,S.Bri,"NIGHT VISION: ON","NIGHT VISION: OFF")
+end)
 local function GE(p) if not ESP[p] then local b,n,hB,hF=Drawing.new("Square"),Drawing.new("Text"),Drawing.new("Square"),Drawing.new("Square") b.Thickness,b.Color,b.Filled,b.Transparency=1.5,Color3.fromRGB(255,0,0),false,1 n.Size,n.Center,n.Outline,n.Color,n.Font=16,true,true,Color3.fromRGB(255,255,255),2 hB.Thickness,hB.Color,hB.Filled,hB.Transparency=1,Color3.fromRGB(0,0,0),true,0.5 hF.Thickness,hF.Color,hF.Filled,hF.Transparency=1,Color3.fromRGB(0,255,0),true,1 ESP[p]={Box=b,Name=n,HealthBg=hB,HealthFill=hF} end return ESP[p] end
 R.RenderStepped:Connect(function()
     local mc=LP.Character local mh=mc and mc:FindFirstChild("HumanoidRootPart") local mu=mc and mc:FindFirstChild("Humanoid") if not mh or not mu or mu.Health<=0 then return end
